@@ -17,7 +17,7 @@ pip install requests beautifulsoup4 pandas
 
 2. Run the script:
 ```python
-python scraper.py
+python book-scraper.py
 ```
 
 The script will create:
