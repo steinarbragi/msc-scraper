@@ -29,9 +29,3 @@ Features:
 - Error handling for failed requests/downloads
 - Clean filename generation for images
 - UTF-8 encoding support for Icelandic characters
-
-Would you like me to modify anything about the scraper? For example, I could:
-- Add more metadata fields
-- Change the file naming convention
-- Add more error handling
-- Modify the scraping delay
