@@ -26,7 +26,7 @@ index_name = "bokai"
 if not pc.has_index(index_name):
     pc.create_index(
         name=index_name,
-        dimension=1024,
+        dimension=1536,
         metric="cosine",
         spec=ServerlessSpec(
             cloud='aws', 
@@ -46,16 +46,43 @@ df = pd.read_sql_query(query, engine)
 def generate_id(title, description, image_url, url):
     return hashlib.md5(f"{title}{description}{image_url}{url}".encode('utf-8')).hexdigest()
 
+# Function to save progress
+def save_progress(processed_ids):
+    with open('progress.txt', 'w') as f:
+        for id in processed_ids:
+            f.write(f"{id}\n")
+
+# Function to load progress
+def load_progress():
+    try:
+        with open('progress.txt', 'r') as f:
+            return set(line.strip() for line in f)
+    except FileNotFoundError:
+        return set()
+
+# Load previously processed IDs
+processed_ids = load_progress()
+
 # Prepare data for Pinecone
 vectors = []
+batch_size = 100  # Adjust this value based on your needs
+total_records = len(df)
+processed_count = 0
+
 for idx, row in df.iterrows():
     _id = generate_id(row['title'], row['description'], row['image_url'], row['url'])
+    
+    # Skip if already processed
+    if _id in processed_ids:
+        continue
+        
     # Combine title and description for embedding
     text_for_embedding = f"{row['title']} {row['description']}"
     embedding = get_embedding(text_for_embedding)
+    
     vectors.append({
         "id": _id,
-        "values": [float(x) for x in embedding],  # Convert all values to float
+        "values": [float(x) for x in embedding],
         "metadata": {
             "title": row['title'],
             "description": row['description'],
@@ -63,9 +90,20 @@ for idx, row in df.iterrows():
             "url": row['url']
         }
     })
-
-# Upsert data into Pinecone
-pc.Index(index_name).upsert(vectors=vectors)
+    
+    processed_count += 1
+    
+    # When batch is full or at end of data, upsert to Pinecone
+    if len(vectors) >= batch_size or idx == len(df) - 1:
+        print(f"Upserting batch... Progress: {processed_count}/{total_records} records ({(processed_count/total_records)*100:.2f}%)")
+        pc.Index(index_name).upsert(vectors=vectors)
+        
+        # Save progress
+        processed_ids.update(v["id"] for v in vectors)
+        save_progress(processed_ids)
+        
+        # Clear vectors for next batch
+        vectors = []
 
 print("Data successfully loaded into Pinecone!")
 
