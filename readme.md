@@ -43,13 +43,15 @@ This script will:
 1. Connect to a PostgreSQL database
 2. Fetch data from a table
 3. Prepare and upsert data for Pinecone in batches
-4. Keeps track of progress in a file so it can resume from where it left off if it fails
+4. Use OpenAI to embed the title and description of the book
+5. Keep track of progress in a file so it can resume from where it left off if it fails
 
 To use the feeder:  
 
 1. set up environment variables in a .env file
 
 ```
+
 PINECONE_API_KEY=<YOUR_PINECONE_API_KEY_HERE>
 OPENAI_API_KEY=<YOUR_OPENAI_API_KEY_HERE>
 dbpassword=<YOUR_DATABASE_PASSWORD_HERE>
