@@ -50,14 +50,13 @@ To use the feeder:
 1. set up environment variables in a .env file
 
 ```
-
-PINECONE_API_KEY="FILL"
-OPENAI_API_KEY="FILL"
-dbname="neondb"
-dbuser="neondb_owner"
-dbpassword="FILL"
-dbhost="FILL"
-dbport="5432"
+PINECONE_API_KEY=<YOUR_PINECONE_API_KEY_HERE>
+OPENAI_API_KEY=<YOUR_OPENAI_API_KEY_HERE>
+dbpassword=<YOUR_DATABASE_PASSWORD_HERE>
+dbhost=<YOUR_DATABASE_HOST_HERE>
+dbuser=neondb_owner
+dbname=neondb
+dbport=5432
 ```
 
 2. Install required packages:
