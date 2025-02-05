@@ -23,6 +23,10 @@ def get_embedding(text):
 # Create an index
 index_name = "bokai"
 
+# Delete existing index
+#if pc.has_index(index_name):
+#    pc.delete_index(index_name)
+
 if not pc.has_index(index_name):
     pc.create_index(
         name=index_name,
