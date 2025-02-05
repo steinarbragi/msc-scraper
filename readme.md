@@ -1,3 +1,7 @@
+This project contains two scripts. A book scraper and a pinecone feeder.
+
+
+## Book Scraper
 
 This scraper will:
 
@@ -29,3 +33,44 @@ Features:
 - Error handling for failed requests/downloads
 - Clean filename generation for images
 - UTF-8 encoding support for Icelandic characters
+
+## Pinecone Feeder
+
+This script will:
+
+1. Connect to a PostgreSQL database
+2. Fetch data from a table
+3. Prepare data for Pinecone
+4. Upsert data into Pinecone
+
+To use the feeder:  
+
+1. set up environment variables in a .env file
+
+```
+PINECONE_API_KEY="FILL"
+OPENAI_API_KEY="FILL"
+dbname="neondb"
+dbuser="neondb_owner"
+dbpassword="FILL"
+dbhost="FILL"
+dbport="5432"
+```
+
+
+
+2. Install required packages:
+```python
+pip install pinecone pandas psycopg2 python-dotenv
+pip install "pinecone[grpc]" #for the gprc version
+```   
+
+3. Run the script:
+```python
+python pinecone-feeder.py
+```
+
+
+
+
+
