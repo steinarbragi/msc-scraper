@@ -36,18 +36,21 @@ Features:
 
 ## Pinecone Feeder
 
+To use the pinecone feeder, you need to have a PostgreSQL database with a table of book data. You can import the `icelandic_children_books.csv` file into a table in your database.
+
 This script will:
 
 1. Connect to a PostgreSQL database
 2. Fetch data from a table
-3. Prepare data for Pinecone
-4. Upsert data into Pinecone
+3. Prepare and upsert data for Pinecone in batches
+4. Keeps track of progress in a file so it can resume from where it left off if it fails
 
 To use the feeder:  
 
 1. set up environment variables in a .env file
 
 ```
+
 PINECONE_API_KEY="FILL"
 OPENAI_API_KEY="FILL"
 dbname="neondb"
@@ -56,8 +59,6 @@ dbpassword="FILL"
 dbhost="FILL"
 dbport="5432"
 ```
-
-
 
 2. Install required packages:
 ```python
@@ -70,6 +71,16 @@ pip install "pinecone[grpc]" #for the gprc version
 python pinecone-feeder.py
 ```
 
+
+### Notes
+
+to clear the index and start fresh after a failed attempt, uncomment the lines in the pinecone-feeder.py file that delete the index.
+
+```
+# Delete existing index
+if pc.has_index(index_name):
+    pc.delete_index(index_name)
+```
 
 
 
