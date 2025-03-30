@@ -45,7 +45,7 @@ DATABASE_URL = f"postgresql://{os.getenv('dbuser')}:{os.getenv('dbpassword')}@{o
 engine = create_engine(DATABASE_URL)
 
 # Fetch data from PostgreSQL using SQLAlchemy
-query = "SELECT id, title, description, image_url, url, age_group FROM scraped_books"
+query = f"SELECT id, title, description, image_filename, url, age_group FROM {os.getenv('table_name')}"
 df = pd.read_sql_query(query, engine)
 print(f"Read {len(df)} records from database")
 
@@ -80,7 +80,7 @@ skipped_count = 0
 
 for idx, row in df.iterrows():
     print(f"Processing record {idx}...")  # Debug print
-    _id = generate_id(row['title'], row['description'], row['image_url'], row['url'])
+    _id = generate_id(row['title'], row['description'], row['image_filename'], row['url'])
     
     # Skip if already processed
     if _id in processed_ids:
@@ -108,7 +108,7 @@ for idx, row in df.iterrows():
     metadata = {
         "title": row['title'],
         "description": row['description'],
-        "image_url": row['image_url'],
+        "image_filename": row['image_filename'],
         "url": row['url']
     }
     

@@ -59,6 +59,8 @@ dbhost=<YOUR_DATABASE_HOST_HERE>
 dbuser=neondb_owner
 dbname=neondb
 dbport=5432
+table_name=<YOUR_TABLE_NAME>
+pinecone_index=<YOUR_PINECONE_INDEX>
 ```
 
 2. Install required packages:
