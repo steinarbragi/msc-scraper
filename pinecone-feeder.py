@@ -45,7 +45,7 @@ DATABASE_URL = f"postgresql://{os.getenv('dbuser')}:{os.getenv('dbpassword')}@{o
 engine = create_engine(DATABASE_URL)
 
 # Fetch data from PostgreSQL using SQLAlchemy
-query = "SELECT id, title, description, image_url, url, age_group FROM books"
+query = "SELECT id, title, description, image_url, url, age_group FROM scraped_books"
 df = pd.read_sql_query(query, engine)
 print(f"Read {len(df)} records from database")
 

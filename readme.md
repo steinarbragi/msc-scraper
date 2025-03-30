@@ -43,7 +43,7 @@ This script will:
 1. Connect to a PostgreSQL database
 2. Fetch data from a table
 3. Prepare and upsert data for Pinecone in batches
-4. Use OpenAI to embed the title and description of the book
+4. Use Pinecone to embed the description and metadata of the book
 5. Keep track of progress in a file so it can resume from where it left off if it fails
 
 To use the feeder:  
