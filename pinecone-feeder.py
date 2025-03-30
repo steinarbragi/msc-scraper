@@ -5,23 +5,25 @@ from sqlalchemy import create_engine
 import hashlib
 import os
 from dotenv import load_dotenv
+from sentence_transformers import SentenceTransformer
 
 load_dotenv()
-pc = Pinecone()    
+pc = Pinecone(
+    api_key=os.getenv('PINECONE_API_KEY')
+)    
 
-# Initialize OpenAI client
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-
-# Function to get embeddings from OpenAI
+# Function to get embeddings using Pinecone's hosted E5 model
 def get_embedding(text):
-    response = client.embeddings.create(
-        model="text-embedding-3-small",  # or "text-embedding-ada-002"
-        input=text
+    embeddings = pc.inference.embed(
+        model="multilingual-e5-large",
+        inputs=[text],
+        parameters={"input_type": "passage"}  # Use 'passage' for content being stored
     )
-    return response.data[0].embedding
+    # Convert DenseEmbedding to list of floats
+    return [float(x) for x in embeddings[0].values]
 
 # Create an index
-index_name = "bokai"
+index_name = "bokai-e5"
 
 # Delete existing index
 #if pc.has_index(index_name):
@@ -30,8 +32,8 @@ index_name = "bokai"
 if not pc.has_index(index_name):
     pc.create_index(
         name=index_name,
-        dimension=1536,
-        metric="cosine",
+        dimension=1024,  # E5 large has 1024 dimensions
+        metric="cosine",  # E5 was trained using cosine similarity
         spec=ServerlessSpec(
             cloud='aws', 
             region='us-east-1'
@@ -45,6 +47,7 @@ engine = create_engine(DATABASE_URL)
 # Fetch data from PostgreSQL using SQLAlchemy
 query = "SELECT id, title, description, image_url, url FROM books"
 df = pd.read_sql_query(query, engine)
+print(f"Read {len(df)} records from database")
 
 # Function to generate unique IDs based on data
 def generate_id(title, description, image_url, url):
@@ -66,27 +69,40 @@ def load_progress():
 
 # Load previously processed IDs
 processed_ids = load_progress()
+print(f"Found {len(processed_ids)} previously processed IDs")
 
 # Prepare data for Pinecone
 vectors = []
-batch_size = 100  # Adjust this value based on your needs
+batch_size = 100
 total_records = len(df)
 processed_count = 0
+skipped_count = 0
 
 for idx, row in df.iterrows():
+    print(f"Processing record {idx}...")  # Debug print
     _id = generate_id(row['title'], row['description'], row['image_url'], row['url'])
     
     # Skip if already processed
     if _id in processed_ids:
+        skipped_count += 1
         continue
         
+    # Print first record's embedding to verify dimension
+    if idx == 0:
+        text_for_embedding = f"{row['title']}\n{row['description']}"
+        print(f"Creating first embedding for text: {text_for_embedding[:100]}...")  # Debug print
+        embedding = get_embedding(text_for_embedding)
+        print(f"First embedding dimension: {len(embedding)}")
+    
     # Combine title and description for embedding
-    text_for_embedding = f"{row['title']} {row['description']}"
+    text_for_embedding = f"{row['title']}\n{row['description']}"
+    print(f"Creating embedding for record {idx}...")  # Debug print
     embedding = get_embedding(text_for_embedding)
+    print(f"Embedding created for record {idx}")  # Debug print
     
     vectors.append({
         "id": _id,
-        "values": [float(x) for x in embedding],
+        "values": embedding,
         "metadata": {
             "title": row['title'],
             "description": row['description'],
@@ -99,8 +115,14 @@ for idx, row in df.iterrows():
     
     # When batch is full or at end of data, upsert to Pinecone
     if len(vectors) >= batch_size or idx == len(df) - 1:
-        print(f"Upserting batch... Progress: {processed_count}/{total_records} records ({(processed_count/total_records)*100:.2f}%)")
-        pc.Index(index_name).upsert(vectors=vectors)
+        print(f"Attempting to upsert {len(vectors)} vectors...")
+        try:
+            pc.Index(index_name).upsert(vectors=vectors)
+            stats = pc.Index(index_name).describe_index_stats()
+            print(f"Upsert successful. Total vectors in index: {stats.total_vector_count}")
+        except Exception as e:
+            print(f"Error during upsert: {e}")
+            print(f"First vector in batch: {vectors[0]}")
         
         # Save progress
         processed_ids.update(v["id"] for v in vectors)
@@ -109,7 +131,10 @@ for idx, row in df.iterrows():
         # Clear vectors for next batch
         vectors = []
 
-print("Data successfully loaded into Pinecone!")
+print(f"\nSummary:")
+print(f"Total records: {total_records}")
+print(f"Skipped records: {skipped_count}")
+print(f"Processed records: {processed_count}")
 
 # Dispose of the SQLAlchemy engine
 engine.dispose()
