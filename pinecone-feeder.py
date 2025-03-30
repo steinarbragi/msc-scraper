@@ -45,7 +45,7 @@ DATABASE_URL = f"postgresql://{os.getenv('dbuser')}:{os.getenv('dbpassword')}@{o
 engine = create_engine(DATABASE_URL)
 
 # Fetch data from PostgreSQL using SQLAlchemy
-query = "SELECT id, title, description, image_url, url FROM books"
+query = "SELECT id, title, description, image_url, url, age_group FROM books"
 df = pd.read_sql_query(query, engine)
 print(f"Read {len(df)} records from database")
 
@@ -90,25 +90,36 @@ for idx, row in df.iterrows():
     # Print first record's embedding to verify dimension
     if idx == 0:
         text_for_embedding = f"{row['title']}\n{row['description']}"
+        if pd.notna(row['age_group']):
+            text_for_embedding += f"\nAldurshópur: {row['age_group']}"
         print(f"Creating first embedding for text: {text_for_embedding[:100]}...")  # Debug print
         embedding = get_embedding(text_for_embedding)
         print(f"First embedding dimension: {len(embedding)}")
     
-    # Combine title and description for embedding
+    # Combine title, description, and age group for embedding
     text_for_embedding = f"{row['title']}\n{row['description']}"
+    if pd.notna(row['age_group']):
+        text_for_embedding += f"\nAldurshópur: {row['age_group']}"
     print(f"Creating embedding for record {idx}...")  # Debug print
     embedding = get_embedding(text_for_embedding)
     print(f"Embedding created for record {idx}")  # Debug print
     
+    # Prepare metadata
+    metadata = {
+        "title": row['title'],
+        "description": row['description'],
+        "image_url": row['image_url'],
+        "url": row['url']
+    }
+    
+    # Add age group to metadata if it exists
+    if pd.notna(row['age_group']):
+        metadata["age_group"] = row['age_group']
+    
     vectors.append({
         "id": _id,
         "values": embedding,
-        "metadata": {
-            "title": row['title'],
-            "description": row['description'],
-            "image_url": row['image_url'],
-            "url": row['url']
-        }
+        "metadata": metadata
     })
     
     processed_count += 1

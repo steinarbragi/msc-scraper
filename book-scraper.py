@@ -104,7 +104,7 @@ def scrape_book_details(url):
     """Scrape individual book page"""
     try:
         print(f"Scraping book: {url}")
-        response = requests.get(url, headers=HEADERS, timeout=3)
+        response = requests.get(url, headers=HEADERS, timeout=8)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -133,7 +133,7 @@ def scrape_book_details(url):
         # Get age group from breadcrumb
         age_group = extract_age_group(soup)
         if age_group:
-            metadata['Age Group'] = age_group
+            metadata['age_group'] = age_group
             print(f"Added age group '{age_group}' to metadata for {title}")  # Debug log
         else:
             print(f"No age group found for {title}")  # Debug log
@@ -172,7 +172,7 @@ def main():
         
         url = f"{base_url}page/{page}/" if page > 1 else base_url
         try:
-            response = requests.get(url, headers=HEADERS, timeout=3)
+            response = requests.get(url, headers=HEADERS, timeout=8)
             response.raise_for_status()
             
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -204,15 +204,17 @@ def main():
                         
                         # Prepare row for CSV
                         book_row = {
-                            'Title': book_data['title'],
-                            'Description': book_data['description'],
-                            'Image_Filename': image_filename,
-                            'URL': book_data['url']  # Include the URL in the CSV
+                            'title': book_data['title'],
+                            'description': book_data['description'],
+                            'image_filename': image_filename,
+                            'url': book_data['url']  # Include the URL in the CSV
                         }
                         
                         # Add metadata fields
                         for key, value in book_data['metadata'].items():
-                            book_row[key] = value
+                            # Convert metadata keys to snake_case
+                            snake_key = key.lower().replace(' ', '_')
+                            book_row[snake_key] = value
                         
                         books_data.append(book_row)
                         print(f"Successfully processed: {book_data['title']}")
