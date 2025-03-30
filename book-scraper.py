@@ -72,11 +72,39 @@ def find_description(soup):
             
     return ''
 
+def extract_age_group(soup):
+    """Extract age group from breadcrumb navigation"""
+    try:
+        # Look for the elementor widget containing the breadcrumb with the specific data-id
+        breadcrumb_div = soup.find('div', class_='elementor-widget-text-editor', attrs={'data-id': '8c4e534'})
+        if breadcrumb_div:
+            # Find all links in the breadcrumb
+            links = breadcrumb_div.find_all('a')
+            # Collect all age groups
+            age_groups = []
+            for link in links:
+                text = link.text.strip()
+                # Check if the text matches an age group pattern
+                if any(pattern in text.lower() for pattern in ['ára', 'ár']):
+                    age_groups.append(text)
+            
+            if age_groups:
+                result = ", ".join(age_groups)
+                print(f"Found age groups: {result}")  # Debug log
+                return result
+            else:
+                print("No age groups found in breadcrumb")  # Debug log
+        else:
+            print("Breadcrumb div not found")  # Debug log
+    except Exception as e:
+        print(f"Error extracting age group: {e}")
+    return None
+
 def scrape_book_details(url):
     """Scrape individual book page"""
     try:
         print(f"Scraping book: {url}")
-        response = requests.get(url, headers=HEADERS, timeout=10)
+        response = requests.get(url, headers=HEADERS, timeout=3)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -101,6 +129,14 @@ def scrape_book_details(url):
                 key = row.find('th').text.strip()
                 value = row.find('td').text.strip()
                 metadata[key] = value
+        
+        # Get age group from breadcrumb
+        age_group = extract_age_group(soup)
+        if age_group:
+            metadata['Age Group'] = age_group
+            print(f"Added age group '{age_group}' to metadata for {title}")  # Debug log
+        else:
+            print(f"No age group found for {title}")  # Debug log
         
         # Get main product image
         image_url = None
@@ -136,7 +172,7 @@ def main():
         
         url = f"{base_url}page/{page}/" if page > 1 else base_url
         try:
-            response = requests.get(url, headers=HEADERS, timeout=10)
+            response = requests.get(url, headers=HEADERS, timeout=3)
             response.raise_for_status()
             
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -180,15 +216,20 @@ def main():
                         
                         books_data.append(book_row)
                         print(f"Successfully processed: {book_data['title']}")
+                        print(f"Current number of books in data: {len(books_data)}")
                     
                     # Be nice to the server
                     time.sleep(1)
             
             # Save progress after each page
             if books_data:
-                df = pd.DataFrame(books_data)
-                df.to_csv('icelandic_children_books.csv', index=False, encoding='utf-8-sig')
-                print(f"Progress saved! Current total: {len(books_data)} books")
+                try:
+                    df = pd.DataFrame(books_data)
+                    print(f"\nSaving CSV with {len(df)} rows and columns: {df.columns.tolist()}")
+                    df.to_csv('icelandic_children_books.csv', index=False, encoding='utf-8-sig')
+                    print(f"Progress saved! Current total: {len(books_data)} books")
+                except Exception as e:
+                    print(f"Error saving CSV: {e}")
             
             page += 1
             
@@ -201,9 +242,13 @@ def main():
     
     # Final save
     if books_data:
-        df = pd.DataFrame(books_data)
-        df.to_csv('icelandic_children_books.csv', index=False, encoding='utf-8-sig')
-        print(f"\nScraping completed. Total books scraped: {len(books_data)}")
+        try:
+            df = pd.DataFrame(books_data)
+            print(f"\nFinal save - Saving CSV with {len(df)} rows and columns: {df.columns.tolist()}")
+            df.to_csv('icelandic_children_books.csv', index=False, encoding='utf-8-sig')
+            print(f"\nScraping completed. Total books scraped: {len(books_data)}")
+        except Exception as e:
+            print(f"Error in final CSV save: {e}")
     else:
         print("\nNo books were successfully scraped.")
 

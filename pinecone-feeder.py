@@ -23,7 +23,7 @@ def get_embedding(text):
     return [float(x) for x in embeddings[0].values]
 
 # Create an index
-index_name = "bokai-e5"
+index_name = os.getenv('pinecone_index')
 
 # Delete existing index
 #if pc.has_index(index_name):
