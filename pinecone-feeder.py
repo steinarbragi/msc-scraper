@@ -12,11 +12,15 @@ pc = Pinecone(
     api_key=os.getenv('PINECONE_API_KEY')
 )    
 
-# Function to get embeddings using multilingual-e5-large model
+# Function to get embeddings using Pinecone's hosted E5 model
 def get_embedding(text):
-    model = SentenceTransformer('intfloat/multilingual-e5-large')
-    embeddings = model.encode(text)
-    return embeddings.tolist()
+    embeddings = pc.inference.embed(
+        model="multilingual-e5-large",
+        inputs=[text],
+        parameters={"input_type": "passage"}  # Use 'passage' for content being stored
+    )
+    # Convert DenseEmbedding to list of floats
+    return [float(x) for x in embeddings[0].values]
 
 # Create an index
 index_name = "bokai-e5"
@@ -28,8 +32,8 @@ index_name = "bokai-e5"
 if not pc.has_index(index_name):
     pc.create_index(
         name=index_name,
-        dimension=1024,
-        metric="cosine",
+        dimension=1024,  # E5 large has 1024 dimensions
+        metric="cosine",  # E5 was trained using cosine similarity
         spec=ServerlessSpec(
             cloud='aws', 
             region='us-east-1'
@@ -98,7 +102,7 @@ for idx, row in df.iterrows():
     
     vectors.append({
         "id": _id,
-        "values": [float(x) for x in embedding],
+        "values": embedding,
         "metadata": {
             "title": row['title'],
             "description": row['description'],
